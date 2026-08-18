@@ -4,13 +4,15 @@ class LinearRegression:
     def __init__(self, method='gradient_descent'):
         self.beta = None
         self.method = method
+        self.losses = []
+        self.epochs_ran = 0
 
     def fit(
+        self,
         X: np.ndarray,
         y: np.ndarray,
         learning_rate: float = 0.01,
         epochs: int = 100000,
-        method: str = 'gradient_descent',
         init: str = 'zeros',
         tolerance: float = 1e-6,
         ridge_lambda: float = 0
@@ -23,8 +25,7 @@ class LinearRegression:
         X : input features
         y : given output
         learning_rate : learning rate
-        epochs : number of iterations
-        method : closed form / gradient descent
+        epochs : number of iterationsz
         init : inital values for features' coefficient
         tolerance : stopping error criterion
         ridge_lambda : lambda for regularization
@@ -33,42 +34,40 @@ class LinearRegression:
         -------
         beta : features' coefficient
         losses : loss history
-        epoch : number of iterations done
+        epochs_ran : number of iterations done
         '''
 
         m, n = X.shape
 
         if init == 'zeros':
-            beta = np.zeros((n, 1))
+            self.beta = np.zeros((n, 1))
 
         elif init == 'random':
-            beta = np.random.randn(n, 1)
+            self.beta = np.random.randn(n, 1)
         
         elif init == 'large_random':
-            beta = np.random.randn(n, 1) * 100
+            self.beta = np.random.randn(n, 1) * 100
             
         else:
             raise ValueError('Unknown Initilization')
 
-        losses = []
-        epoch = 0
 
-        if method == 'closed_form':
+        if self.method == 'closed_form':
             I = np.eye(n)
             I[0, 0] = 0
 
             A = X.T @ X + ridge_lambda * I
             B = X.T @ y
 
-            beta = np.linalg.solve(A, B)
+            self.beta = np.linalg.solve(A, B)
 
-        elif method == 'gradient_descent':
+        elif self.method == 'gradient_descent':
             prev_loss = np.inf
 
             for epoch in range(epochs):
-                y_pred = predict(X, beta)
+                y_pred = self.predict(X)
                 
-                reg_beta = beta.copy()
+                reg_beta = self.beta.copy()
                 reg_beta[0] = 0
 
                 loss = (
@@ -77,7 +76,7 @@ class LinearRegression:
                 (ridge_lambda * reg_beta.T @ reg_beta) / (2 * m)
                 ).item()
                 
-                losses.append(loss)
+                self.losses.append(loss)
 
                 gradient = (
                 ((X.T) @ (y_pred - y)) / m
@@ -93,14 +92,14 @@ class LinearRegression:
                 if norm < tolerance or delta < tolerance:
                     break
 
-                beta = beta - learning_rate * gradient
+                self.beta = self.beta - learning_rate * gradient
                 prev_loss = loss
-        
+                self.epochs_ran = epoch
         else:
             raise ValueError('Unknown Method')
             
-        return beta, losses, epoch + 1
+        return self.beta, self.losses, self.epochs_ran + 1
 
 
-    def predict(X: np.ndarray, beta: np.ndarray) -> np.ndarray:
-        return X @ beta
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return X @ self.beta

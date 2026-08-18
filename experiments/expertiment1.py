@@ -1,24 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from time import perf_counter
-from model import (
-    load_data,
-    standardize,
-    polynomial_features,
-    mse,
-    r2,
-    fit_closed_form,
-    fit_gradient_descent,
-    predict,
-    save_figure
-)
+import os
+import sys
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(PROJECT_ROOT)
+
+from models.linear_regression import LinearRegression
+from utils.data_preprocessing import (load_data, standardize, polynomial_features)
+from utils.metrics import (mse, r2)
 
 
-def run_experiments():
+def run_experiment():
     '''
     ===============   Dataset   ===============
     '''
-    PATH = "../data/Homes for Sale and Real Estate.csv"
+    # Dynamically build the path to the dataset using the root folder
+    PATH = os.path.join(PROJECT_ROOT, "datasets", "Homes for Sale and Real Estate.csv")
     FEATURES = ["Sq.Ft", "Beds", "Bath"]
     TARGET = "Price"
 
@@ -49,12 +48,22 @@ def run_experiments():
     if STANDARDIZE:
         X, mean, std = standardize(X)
 
+    model_closed = LinearRegression(method='closed_form')
+    model_gd = LinearRegression(method='gradient_descent')
+
     start = perf_counter()
-    beta_closed = fit_closed_form(X, y)
+    beta_closed, _, _ = model_closed.fit(
+        X,
+        y,
+        learning_rate=LEARNING_RATE,
+        epochs=EPOCHS,
+        init=INIT,
+        tolerance=TOLERANCE
+    )
     time_closed = perf_counter() - start
 
     start = perf_counter()
-    beta_gd, losses, epoch = fit_gradient_descent(
+    beta_gd, losses, epoch = model_gd.fit(
         X,
         y,
         learning_rate=LEARNING_RATE,
@@ -64,8 +73,8 @@ def run_experiments():
     )
     time_gd = perf_counter() - start
 
-    y_pred_closed = predict(X, beta_closed)
-    y_pred_gd = predict(X, beta_gd)
+    y_pred_closed = model_closed.predict(X)
+    y_pred_gd = model_gd.predict(X)
 
     mse_closed = mse(y, y_pred_closed)
     mse_gd = mse(y, y_pred_gd)
@@ -168,8 +177,8 @@ def run_experiments():
 
     for degree in degrees:
         X_poly = polynomial_features(X_single, degree)
-        beta = fit_closed_form(X_poly, y)
-        y_pred = predict(X_poly, beta)
+        beta, _, _ = model_closed.fit(X_poly, y)
+        y_pred = model_closed.predict(X_poly)
         plt.plot(x[idx], y_pred[idx], linewidth=2, label=f"Degree {degree}")
 
     plt.scatter(x, y, color="black", s=15)
@@ -190,8 +199,8 @@ def run_experiments():
 
     for degree in degrees:
         X_poly = polynomial_features(X, degree)
-        beta = fit_closed_form(X_poly, y)
-        y_pred = predict(X_poly, beta)
+        beta, _, _ = model_closed.fit(X_poly, y)
+        y_pred = model_closed.predict(X_poly)
         mses.append(mse(y, y_pred))
 
     plt.figure(figsize=(8, 5))
@@ -211,8 +220,8 @@ def run_experiments():
     mse_values = []
 
     for lam in lambdas:
-        beta = fit_closed_form(X, y, ridge_lambda=lam)
-        y_pred = predict(X, beta)
+        beta, _, _ = model_closed.fit(X, y, ridge_lambda=lam)
+        y_pred = model_closed.predict(X)
         mse_values.append(mse(y, y_pred))
 
     plt.figure(figsize=(8, 5))
@@ -232,7 +241,7 @@ def run_experiments():
     coefficients = []
 
     for lam in lambdas:
-        beta = fit_closed_form(X, y, ridge_lambda=lam)
+        beta, _, _ = model_closed.fit(X, y, ridge_lambda=lam)
         coefficients.append(beta[1:].flatten())
 
     coefficients = np.array(coefficients)
@@ -255,6 +264,14 @@ def run_experiments():
     save_figure("ridge_coefficients")
     plt.close()
 
+def save_figure(filename: str):
+    path = os.path.join(os.path.dirname(__file__), "figures", filename)
+    plt.savefig(
+        path,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
 
 if __name__ == "__main__":
-    run_experiments()
+    run_experiment()
