@@ -67,22 +67,18 @@ class LinearRegression:
             for epoch in range(epochs):
                 y_pred = self.predict(X)
                 
-                reg_beta = self.beta.copy()
-                reg_beta[0] = 0
+                ridge_beta = self.beta.copy()
+                ridge_beta[0] = 0
 
                 loss = (
                 ((y_pred - y).T @ (y_pred - y)) / (2 * m)
                 +
-                (ridge_lambda * reg_beta.T @ reg_beta) / (2 * m)
+                (ridge_lambda * ridge_beta.T @ ridge_beta) / (2 * m)
                 ).item()
                 
                 self.losses.append(loss)
 
-                gradient = (
-                ((X.T) @ (y_pred - y)) / m
-                +
-                (ridge_lambda / m) * reg_beta
-                )
+                gradient = (X.T @ (y_pred - y)) / m + (ridge_lambda * ridge_beta) / m
                 
                 # stopping criteria
 
