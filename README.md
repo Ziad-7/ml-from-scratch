@@ -17,7 +17,7 @@ in Python using Numpy and Pandas.
 ---
 
 ## Directory Structure
-
+```
 ml-from-scratch/
     /datasets
         /Homes for Sale and Real Estate.csv
@@ -48,5 +48,5 @@ ml-from-scratch/
  ┃ ┗ 📜metrics.py
  ┣ 📜README.md
  ┗ 📜requirements.txt
- 
+```
 ---
