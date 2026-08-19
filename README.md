@@ -18,20 +18,6 @@ in Python using Numpy and Pandas.
 
 ## Directory Structure
 ```
-ml-from-scratch/
-    /datasets
-        /Homes for Sale and Real Estate.csv
-        /Salary Data.csv
-    /experiments
-        /figures
-        /experiment1.py
-    /models
-        /linear_regression
-        /logistic_regression
-    /utils
-        /data_preprocessing.py
-        /metrics.py
-
 
 📦ml-from-scratch
 📂datasets
@@ -50,3 +36,14 @@ ml-from-scratch/
  ┗ 📜requirements.txt
 ```
 ---
+
+## How to Run
+1. Install Dependancies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Run an Experiment:
+```bash
+python experiments/experiment1.py
+```
