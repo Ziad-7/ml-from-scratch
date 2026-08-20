@@ -7,7 +7,8 @@ def load_data(path: str, features: list[str], target: str) -> tuple[pd.DataFrame
     '''
     df = pd.read_csv(path)
 
-    df = df.dropna().reset_index(drop=True)
+    df = df.dropna(axis=1, how='all').dropna().reset_index(drop=True)
+
 
     assert len(features) > 0
     assert target in df.columns
