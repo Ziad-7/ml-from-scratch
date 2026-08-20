@@ -90,6 +90,7 @@ def run_experiment():
     ax.set_yticklabels(['Actual Malignant (1)', 'Actual Benign (0)'])
 
     save_figure("Confusion Matrix.png")
+    plt.close()
 
 def save_figure(filename: str):
     path = os.path.join(os.path.dirname(__file__), "figures", filename)
