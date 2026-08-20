@@ -16,7 +16,6 @@ def run_experiment():
     '''
     ===============   Dataset   ===============
     '''
-    # Dynamically build the path to the dataset using the root folder
     PATH = os.path.join(PROJECT_ROOT, "datasets", "Homes for Sale and Real Estate.csv")
     FEATURES = ["Sq.Ft", "Beds", "Bath"]
     TARGET = "Price"
