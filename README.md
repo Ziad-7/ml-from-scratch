@@ -20,7 +20,7 @@ in Python using Numpy and Pandas.
 ```
 
 📦ml-from-scratch
-📂datasets
+ ┣ 📂datasets
  ┃ ┣ 📜Homes for Sale and Real Estate.csv
  ┃ ┗ 📜Salary Data.csv
  ┣ 📂experiments
