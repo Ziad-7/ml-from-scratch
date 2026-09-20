@@ -107,10 +107,12 @@ class NN:
         for epoch in range(epochs):
             a, Z = self.forward(X)
             loss = self.compute_cost(a[-1], y)
+            self.losses.append(loss)
             dW, db = self.backprop(a, Z, y)
-            self.W = self.W - learning_rate * dW
-            self.b = self.b - learning_rate * db
-            pass
+            for i in range(1, len(self.W)):
+                self.W[i] = self.W[i] - learning_rate * dW[i]
+                self.b[i] = self.b[i] - learning_rate * db[i]
+            
         pass
         
 
