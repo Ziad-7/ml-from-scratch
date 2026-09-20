@@ -30,7 +30,7 @@ class NN:
         Feeds X through all layers using W and b
         returns a and Z lists
         '''
-        n_features = X.shape[1]
+        n_features = len(next(iter(X)))
         full_layers_sizes = [n_features] +  self.layer_sizes
 
         n_layers = len(full_layers_sizes)
@@ -85,24 +85,8 @@ class NN:
         return dJdW, dJdb
 
 
-    def fit(self, X, y):
-        n_features = X.shape[1]
-        full_layers_sizes = [n_features] +  self.layer_sizes
-        n_layers = len(full_layers_sizes)
-
-        a = [X]
-        Z = [None]
-        for i in range(1, n_layers): # 1 -> 4
-            self.W.append(np.random.randn(full_layers_sizes[i-1], full_layers_sizes[i]) * 0.01)
-            self.b.append(np.zeros((1, full_layers_sizes[i])))
-
-            activation = self.output_activation if i == n_layers - 1 else self.hidden_activation
-            Z.append(a[i-1] @ self.W[i] + self.b[i])
-            a.append(self.g(activation, Z[i]))
-
-
-    def new_fit(self, X, y, epochs=10000, learning_rate=0.01) -> None:
-        self._init_parameters(X.shape[1])
+    def fit(self, X, y, epochs=10000, learning_rate=0.01) -> None:
+        self._init_parameters(len(next(iter(X))))
 
         for epoch in range(epochs):
             a, Z = self.forward(X)
@@ -112,8 +96,7 @@ class NN:
             for i in range(1, len(self.W)):
                 self.W[i] = self.W[i] - learning_rate * dW[i]
                 self.b[i] = self.b[i] - learning_rate * db[i]
-            
-        pass
+            print(f"epoch {epoch}: Loss = {loss}")
         
 
     def g(self, activation, Z):
@@ -131,15 +114,18 @@ class NN:
         return activations[activation](Z)
 
     
-    def predict(self):
-        pass
+    def predict(self, X):
+        a, Z = self.forward(X)
+        return (a[-1] > 0.5).astype(int)
 
 
 def main():
     nn1 = NN()
     X = np.array([[1], [2], [3], [2], [50], [60] ,[55], [61]])
     y = np.array([[0], [0], [0], [0], [1], [1], [1], [1]])
-    nn1.fit(X, y)
+    nn1.fit(X, y, epochs=20000)
+    prediction = nn1.predict([[5], [0], [30], [70]])
+    print(prediction)
 
 if __name__ == "__main__":
     main()
