@@ -28,6 +28,7 @@ class NN:
     def forward(self, X) -> tuple[list[np.ndarray], list[np.ndarray]]:
         '''
         Feeds X through all layers using W and b
+        returns a and Z lists
         '''
         n_features = X.shape[1]
         full_layers_sizes = [n_features] +  self.layer_sizes
@@ -44,10 +45,44 @@ class NN:
 
 
     def compute_cost(self, y_pred, y) -> float:
-        return ((y - y_pred)**2)/2 # idk what's the loss, shouldn't it be log likelihood or smth
+        eps = 1e-15
+        return np.mean(-y * np.log(y_pred + eps) - (1 - y) * np.log(1 - y_pred + eps))
 
-    def backward(self):
-        pass
+    def backprop(self, a, Z, y):
+        m = a[0].shape[0]
+        n_layers = len(self.W)
+        
+        dJdW = [None] * n_layers
+        dJdb = [None] * n_layers
+
+        # dJ/dW = dJ/da * da/dZ * dZ/dW
+        # dJ/db = dJ/da * da/dZ * dZ/db
+
+        # dJ/da (final layer) = (a - y) / (a * (1 - a))
+        # da/dZ = a * (1 - a)
+        # dZ/dW = a_prev
+        # dZ/db = 1
+
+        dJdZ = a[-1] - y
+        dJdW[-1] = (a[-2].T @ dJdZ) / m
+        dJdb[-1] = np.sum(dJdZ, axis=0, keepdims=True) / m
+
+        for i in range(n_layers - 2, 0, -1):
+            # dJ/da (hidden layers) = dJ/dZ_next * dZ_next/da
+            #   dJ/dZ_next = calculated
+            #   dZ_next/da = W_next
+            # da/dZ = 1 if Z > 0 else 0
+            # dZ/dW = a_prev
+            # dZ/db = 1
+
+            dJda = dJdZ @ self.W[i+1].T
+            dadZ = (Z[i] > 0).astype(float)
+            dJdZ = dJda * dadZ
+
+            dJdW[i] = (a[i-1].T @ dJdZ) / m
+            dJdb[i] = np.sum(dJdZ, axis=0, keepdims=True) / m
+
+        return dJdW, dJdb
 
 
     def fit(self, X, y):
@@ -71,6 +106,10 @@ class NN:
 
         for epoch in range(epochs):
             a, Z = self.forward(X)
+            loss = self.compute_cost(a[-1], y)
+            dW, db = self.backprop(a, Z, y)
+            self.W = self.W - learning_rate * dW
+            self.b = self.b - learning_rate * db
             pass
         pass
         
