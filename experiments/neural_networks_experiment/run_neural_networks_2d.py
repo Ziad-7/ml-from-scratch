@@ -14,7 +14,7 @@ def run_experiment():
     #-------------
     # X, y, model
     #-------------
-    nn = NN(hidden_activation='relu', layer_sizes=[16, 4, 1])
+    nn = NN(layer_sizes=[16, 8, 4, 1])
     X, y = make_moons(n_samples=300, noise=0.1)
     y = y.reshape(-1, 1)
     print(X.shape, y.shape)
@@ -32,8 +32,8 @@ def run_experiment():
     x0_min, x0_max = np.min(X[:, 0]) - 1, np.max(X[:, 0]) + 1
     x1_min, x1_max = np.min(X[:, 1]) - 1, np.max(X[:, 1]) + 1
 
-    x0_line = np.linspace(x0_min, x0_max, 500)
-    x1_line = np.linspace(x1_min, x1_max, 500)
+    x0_line = np.linspace(x0_min, x0_max, 200)
+    x1_line = np.linspace(x1_min, x1_max, 200)
     x0, x1 = np.meshgrid(x0_line, x1_line)
     grid_points = np.c_[x0.ravel(), x1.ravel()]
 
@@ -42,9 +42,9 @@ def run_experiment():
         a, _ = model.forward(grid_points)
         y_ = a[-1].reshape(x0.shape)
  
-        ax.contourf(x0, x1, y_)
-        ax.contour(x0, x1, y_)
-        ax.scatter(X[:, 0], X[:, 1], c=y.ravel())
+        ax.contourf(x0, x1, y_, levels=10, cmap='coolwarm', alpha=0.7)
+        ax.contour(x0, x1, y_, levels=[0.5], color='black', linewidths=2)
+        ax.scatter(X[:, 0], X[:, 1], c=y.ravel(), cmap='coolwarm')
         ax.set_title(f"epoch {epoch}: Loss = {loss}")
         plt.pause(0.02)
 
