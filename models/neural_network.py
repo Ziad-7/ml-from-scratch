@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class NN:
     def __init__(self,
@@ -21,7 +22,7 @@ class NN:
         n_layers = len(full_layers_sizes)
 
         for i in range(1, n_layers):
-            self.W.append(np.random.randn(full_layers_sizes[i-1], full_layers_sizes[i]) * 0.01)
+            self.W.append(np.random.randn(full_layers_sizes[i-1], full_layers_sizes[i]) * (2 / full_layers_sizes[i-1]))
             self.b.append(np.zeros((1, full_layers_sizes[i])))
 
 
@@ -113,19 +114,62 @@ class NN:
 
         return activations[activation](Z)
 
+    def predict_prob(self, X):
+        a, _ = self.forward(X)
+        return a[-1]
+
     
     def predict(self, X):
         a, Z = self.forward(X)
         return (a[-1] > 0.5).astype(int)
 
 
+    def train_with_plt(self, X, y, epochs=10000, learning_rate=0.01) -> None:
+        self._init_parameters(len(next(iter(X))))
+
+        plt.ion()
+        fig, ax = plt.subplots()
+
+        ax.scatter(X, y, edgecolors='green')
+        ax.set_title("Live Neural Network Leanring")
+        ax.set_xlabel("X")
+        ax.set_ylabel("y")
+
+        x_line = np.linspace(np.min(X) - 1, np.max(X) + 1, 500).reshape(-1, 1)
+        a_init, _ = self.forward(x_line)
+        graph,  = ax.plot(x_line, a_init[-1])
+
+        for epoch in range(epochs):
+            a, Z = self.forward(X)
+            loss = self.compute_cost(a[-1], y)
+            self.losses.append(loss)
+            dW, db = self.backprop(a, Z, y)
+            for i in range(1, len(self.W)):
+                self.W[i] = self.W[i] - learning_rate * dW[i]
+                self.b[i] = self.b[i] - learning_rate * db[i]
+            if epoch % 50 == 0:
+                a_curr, _ = self.forward(x_line)
+                graph.set_ydata(a_curr[-1])
+                ax.set_title(f"epoch {epoch}: Loss = {loss}")
+                plt.pause(0.05)
+                print(f"epoch {epoch}: Loss = {loss}")
+
+        plt.ioff()
+        plt.show()
+
+
+    def plot_loss(self):
+        plt.plot(self.losses)
+        plt.show()
+
 def main():
-    nn1 = NN()
+    nn1 = NN(hidden_activation='linear', layer_sizes=[4, 1])
     X = np.array([[1], [2], [3], [2], [50], [60] ,[55], [61]])
     y = np.array([[0], [0], [0], [0], [1], [1], [1], [1]])
-    nn1.fit(X, y, epochs=20000)
+    nn1.train_with_plt(X, y, epochs=10000)
     prediction = nn1.predict([[5], [0], [30], [70]])
     print(prediction)
+    nn1.plot_loss()
 
 if __name__ == "__main__":
     main()
