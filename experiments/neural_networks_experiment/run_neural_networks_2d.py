@@ -48,7 +48,7 @@ def run_experiment():
         ax.set_title(f"epoch {epoch}: Loss = {loss}")
         plt.pause(0.02)
 
-    nn.fit(X, y, epochs=20000, callback=LivePlot2D)
+    nn.fit(X, y, epochs=20000, optimizer='adam', callback=LivePlot2D)
     save_figure("Prediction_Curve_2D")
     plt.ioff()
     plt.show()
