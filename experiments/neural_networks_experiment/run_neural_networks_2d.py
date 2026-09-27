@@ -8,16 +8,19 @@ sys.path.append(PROJECT_ROOT)
 
 from models.neural_network import NN
 from sklearn.datasets import make_moons
+from utils.data_preprocessing import train_test_split
 
 
 def run_experiment():
     #-------------
     # X, y, model
     #-------------
-    nn = NN(layer_sizes=[16, 8, 4, 1])
-    X, y = make_moons(n_samples=300, noise=0.1)
+    nn = NN(layer_sizes=[16, 8, 4, 1], hidden_activation='relu')
+    X, y = make_moons(n_samples=200, noise=0.2)
     y = y.reshape(-1, 1)
-    print(X.shape, y.shape)
+
+    X_train, y_train, X_val, y_val, X_test, y_test = train_test_split(X, y)
+
     #-------------
     # plot
     #-------------
@@ -37,21 +40,36 @@ def run_experiment():
     x0, x1 = np.meshgrid(x0_line, x1_line)
     grid_points = np.c_[x0.ravel(), x1.ravel()]
 
-    def LivePlot2D(model, epoch, loss):
+    def LivePlot2D(model, epoch):
         ax.cla()
         a, _ = model.forward(grid_points)
         y_ = a[-1].reshape(x0.shape)
  
         ax.contourf(x0, x1, y_, levels=10, cmap='coolwarm', alpha=0.7)
-        ax.contour(x0, x1, y_, levels=[0.5], color='black', linewidths=2)
+        ax.contour(x0, x1, y_, levels=[0.5], colors='black', linewidths=2)
         ax.scatter(X[:, 0], X[:, 1], c=y.ravel(), cmap='coolwarm')
-        ax.set_title(f"epoch {epoch}: Loss = {loss}")
+        if isinstance(epoch, int):
+            ax.set_title(f"epoch {epoch}")
+        elif isinstance(epoch, str):
+            ax.set_title(epoch)
         plt.pause(0.02)
 
-    nn.fit(X, y, epochs=20000, optimizer='adam', callback=LivePlot2D)
+    nn.fit(X_train, y_train, X_val, y_val, epochs=10000, optimizer='adam', callback=LivePlot2D)
+    plt.pause(1)
+    LivePlot2D(nn, "Best Model")
     save_figure("Prediction_Curve_2D")
     plt.ioff()
     plt.show()
+
+    fig2 = plt.plot(nn.train_losses, label="Training Loss")
+    plt.plot(nn.val_losses, label="Validation Loss")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    predicitons = nn.predict(X_test)
+    print(np.mean(predicitons == y_test) * 100)
+    
 
 def save_figure(filename: str):
     path = os.path.join(os.path.dirname(__file__), "figures", filename)

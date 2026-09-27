@@ -57,3 +57,37 @@ def polynomial_features(X: np.ndarray, degree: int) -> np.ndarray:
         X_poly = np.hstack((X_poly, features ** d))
 
     return X_poly
+
+
+def train_test_split(
+        X: np.ndarray,
+        y: np.ndarray,
+        train_ratio: float=0.6,
+        val_ratio: float=0.2,
+        seed: int=42
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    if seed is not None:
+        np.random.seed(seed)
+
+    m = X.shape[0]
+    indices = np.random.permutation(m)
+
+    # shuffle
+    X_shuffled = X[indices]
+    y_shuffled = y[indices]
+
+    train_end = int(m * train_ratio)
+    val_end = int(m * (train_ratio + val_ratio))
+
+    X_train = X_shuffled[: train_end]
+    y_train = y_shuffled[: train_end]
+
+    X_val = X_shuffled[train_end: val_end]
+    y_val = y_shuffled[train_end: val_end]
+
+    X_test = X_shuffled[val_end:]
+    y_test = y_shuffled[val_end:]
+
+    return X_train, y_train, X_val, y_val, X_test, y_test
+    
+    

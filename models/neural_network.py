@@ -9,7 +9,8 @@ class NN:
         ):
         self.W = [None]
         self.b = [None]
-        self.losses = []
+        self.train_losses = []
+        self.val_losses = []
         self.layer_sizes = layer_sizes
         self.hidden_activation = hidden_activation
         self.output_activation = output_activation
@@ -18,6 +19,10 @@ class NN:
         '''
         Initializes the random weights and biases of the network
         '''
+        self.W = [None]
+        self.b = [None]
+        self.train_losses = []
+        self.val_losses = []
         full_layers_sizes = [n_features] +  self.layer_sizes
         n_layers = len(full_layers_sizes)
 
@@ -86,18 +91,98 @@ class NN:
         return dJdW, dJdb
 
 
-    def fit(self, X, y, epochs=10000, learning_rate=0.01) -> None:
+    def fit(
+            self,
+            X: np.ndarray,
+            y: np.ndarray,
+            X_val: np.ndarray=None,
+            y_val: np.ndarray=None,
+            learning_rate: float=0.01,
+            epochs: int=10000,
+            optimizer: str='gd',
+            tolerance: float = 1e-12,
+            patience: int=100,
+            callback=None
+        ) -> None:
         self._init_parameters(len(next(iter(X))))
 
+        M_w = [np.zeros_like(w) if w is not None else 0 for w in self.W]
+        M_b = [np.zeros_like(b) if b is not None else 0 for b in self.b]
+        V_w = [np.zeros_like(w) if w is not None else 0 for w in self.W]
+        V_b = [np.zeros_like(b) if b is not None else 0 for b in self.b]
+
+        beta1 = 0.9
+        beta2 = 0.99
+        t = 0
+
+        eps = 1e-8
+        prev_loss = 0
+        patience_counter = 0
+
+        if X_val is not None and y_val is not None:
+            best_val_loss = 1e9
+            best_W = None
+            best_b = None
+        else:
+            best_val_loss = None
+            val_loss = None
+
         for epoch in range(epochs):
+            t = epoch + 1
+
             a, Z = self.forward(X)
-            loss = self.compute_cost(a[-1], y)
-            self.losses.append(loss)
+            train_loss = self.compute_cost(a[-1], y)
+            self.train_losses.append(train_loss)
+
+            if X_val is not None and y_val is not None:
+                a_, Z_ = self.forward(X_val)
+                val_loss = self.compute_cost(a_[-1], y_val)
+                self.val_losses.append(val_loss)
+
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    best_W = [w.copy() if w is not None else None for w in self.W]
+                    best_b = [b.copy() if b is not None else None for b in self.b]
+                    best_epoch = epoch
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
+            
+            if abs(train_loss - prev_loss) < tolerance or patience_counter > patience:
+                print(f"Early stopping at epoch={epoch}")
+                break
+
+            prev_loss = train_loss
+
             dW, db = self.backprop(a, Z, y)
             for i in range(1, len(self.W)):
-                self.W[i] = self.W[i] - learning_rate * dW[i]
-                self.b[i] = self.b[i] - learning_rate * db[i]
-            print(f"epoch {epoch}: Loss = {loss}")
+                if optimizer == 'gd':
+                    self.W[i] = self.W[i] - learning_rate * dW[i]
+                    self.b[i] = self.b[i] - learning_rate * db[i]
+                elif optimizer == 'adam':
+                    M_w[i] = beta1 * M_w[i] + (1 - beta1) * dW[i]
+                    M_b[i] = beta1 * M_b[i] + (1 - beta1) * db[i]
+
+                    V_w[i] = beta2 * V_w[i] + (1 - beta2) * dW[i]**2
+                    V_b[i] = beta2 * V_b[i] + (1 - beta2) * db[i]**2
+
+                    M_w_hat = M_w[i] / (1 - beta1 ** t)
+                    M_b_hat = M_b[i] / (1 - beta1 ** t)
+
+                    V_w_hat = V_w[i] / (1 - beta2 ** t)
+                    V_b_hat = V_b[i] / (1 - beta2 ** t)
+
+                    self.W[i] = self.W[i] - learning_rate * M_w_hat / (np.sqrt(V_w_hat) + eps)
+                    self.b[i] = self.b[i] - learning_rate * M_b_hat / (np.sqrt(V_b_hat) + eps)
+            
+            if epoch % 50 == 0:
+                print(f"epoch {epoch}: Train Loss = {train_loss} - Validation Loss = {val_loss} - Best Validation Loss = {best_val_loss}")
+                if callback:
+                    callback(self, epoch)
+
+        if X_val is not None and y_val is not None:
+            self.W = best_W
+            self.b = best_b
         
 
     def g(self, activation, Z):
@@ -114,62 +199,12 @@ class NN:
 
         return activations[activation](Z)
 
+
     def predict_prob(self, X):
         a, _ = self.forward(X)
         return a[-1]
 
-    
+
     def predict(self, X):
         a, Z = self.forward(X)
         return (a[-1] > 0.5).astype(int)
-
-
-    def train_with_plt(self, X, y, epochs=10000, learning_rate=0.01) -> None:
-        self._init_parameters(len(next(iter(X))))
-
-        plt.ion()
-        fig, ax = plt.subplots()
-
-        ax.scatter(X, y, edgecolors='green')
-        ax.set_title("Live Neural Network Leanring")
-        ax.set_xlabel("X")
-        ax.set_ylabel("y")
-
-        x_line = np.linspace(np.min(X) - 1, np.max(X) + 1, 500).reshape(-1, 1)
-        a_init, _ = self.forward(x_line)
-        graph,  = ax.plot(x_line, a_init[-1])
-
-        for epoch in range(epochs):
-            a, Z = self.forward(X)
-            loss = self.compute_cost(a[-1], y)
-            self.losses.append(loss)
-            dW, db = self.backprop(a, Z, y)
-            for i in range(1, len(self.W)):
-                self.W[i] = self.W[i] - learning_rate * dW[i]
-                self.b[i] = self.b[i] - learning_rate * db[i]
-            if epoch % 50 == 0:
-                a_curr, _ = self.forward(x_line)
-                graph.set_ydata(a_curr[-1])
-                ax.set_title(f"epoch {epoch}: Loss = {loss}")
-                plt.pause(0.05)
-                print(f"epoch {epoch}: Loss = {loss}")
-
-        plt.ioff()
-        plt.show()
-
-
-    def plot_loss(self):
-        plt.plot(self.losses)
-        plt.show()
-
-def main():
-    nn1 = NN(hidden_activation='linear', layer_sizes=[4, 1])
-    X = np.array([[1], [2], [3], [2], [50], [60] ,[55], [61]])
-    y = np.array([[0], [0], [0], [0], [1], [1], [1], [1]])
-    nn1.train_with_plt(X, y, epochs=10000)
-    prediction = nn1.predict([[5], [0], [30], [70]])
-    print(prediction)
-    nn1.plot_loss()
-
-if __name__ == "__main__":
-    main()
