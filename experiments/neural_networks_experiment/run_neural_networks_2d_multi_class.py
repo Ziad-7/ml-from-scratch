@@ -75,7 +75,7 @@ def run_experiment(n_classes=2):
         ridge_lambda=0.1,
         patience=500,
         callback=LivePlot2D,
-        n_log=10)
+        n_log=20)
     
     predicitons = nn.predict(X_test)
     y_test_labels = np.argmax(y_test, axis=1).reshape(-1, 1)
@@ -104,8 +104,12 @@ def save_figure(filename: str, foldername: str):
     )
 
 
-if __name__ == "__main__":
+def main():
     tests = 3
-    n_classes = [np.random.randint(2, 6) for i in range(tests)]
+    n_classes = np.random.randint(2, 6, tests)
     for i in range(tests):
         run_experiment(n_classes[i])
+
+
+if __name__ == "__main__":
+     main()
