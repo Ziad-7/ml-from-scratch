@@ -7,7 +7,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.append(PROJECT_ROOT)
 
 from models.neural_network import NN
-from sklearn.datasets import make_moons
+from sklearn.datasets import make_blobs, load_digits
 from utils.data_preprocessing import train_test_split
 
 
@@ -15,14 +15,16 @@ def run_experiment():
     #-------------
     # X, y, model
     #-------------
-    nn = NN(layer_sizes=[16, 8, 4, 1], hidden_activation='relu')
-    X, y = make_moons(n_samples=200, noise=0.2)
+    X, y = make_blobs(n_samples=200, centers=4)
     y = y.reshape(-1, 1)
+    n_classes = len(np.unique(y))
+    y_toNN = np.eye(n_classes)[y.ravel()]
+    nn = NN(layer_sizes=[32, 16, 8, 4, n_classes], output_activation='softmax')
 
-    X_train, y_train, X_val, y_val, X_test, y_test = train_test_split(X, y)
+    X_train, y_train, X_val, y_val, X_test, y_test = train_test_split(X, y_toNN)
 
     #-------------
-    # plot
+    # Plots
     #-------------
     plt.ion()
     fig, ax = plt.subplots()
@@ -42,22 +44,24 @@ def run_experiment():
 
     def LivePlot2D(model, epoch):
         ax.cla()
-        a, _ = model.forward(grid_points)
-        y_ = a[-1].reshape(x0.shape)
+        y_ = model.predict(grid_points).reshape(x0.shape)
  
-        ax.contourf(x0, x1, y_, levels=10, cmap='coolwarm', alpha=0.7)
-        ax.contour(x0, x1, y_, levels=[0.5], colors='black', linewidths=2)
-        ax.scatter(X[:, 0], X[:, 1], c=y.ravel(), cmap='coolwarm')
+        ax.contourf(x0, x1, y_, levels=[-0.5, 0.5, 1.5, 2.5], cmap='Set1', alpha=0.7)
+        ax.contour(x0, x1, y_, levels=[0.5, 1.5, 2.5], colors='black', linewidths=2)
+        ax.scatter(X[:, 0], X[:, 1], c=y.ravel(), cmap='Set1', zorder=3)
         if isinstance(epoch, int):
             ax.set_title(f"epoch {epoch}")
         elif isinstance(epoch, str):
             ax.set_title(epoch)
+        fig.canvas.draw_idle()
         plt.pause(0.02)
 
-    nn.fit(X_train, y_train, X_val, y_val, epochs=10000, optimizer='adam', callback=LivePlot2D)
+    nn.fit(X_train, y_train, X_val, y_val, epochs=1000, optimizer='adam', ridge_lambda=0.1, patience=10000, callback=LivePlot2D)
     plt.pause(1)
     LivePlot2D(nn, "Best Model")
-    save_figure("Prediction_Curve_2D")
+    # save_figure("Prediction_Curve_2D_moons")
+    # save_figure("Prediction_Curve_2D_circles")
+    save_figure("Prediction_Curve_2D_blobs")
     plt.ioff()
     plt.show()
 
@@ -68,7 +72,10 @@ def run_experiment():
     plt.show()
 
     predicitons = nn.predict(X_test)
-    print(np.mean(predicitons == y_test) * 100)
+    y_test_labels = np.argmax(y_test, axis=1).reshape(-1, 1)
+    print(np.mean(predicitons == y_test_labels) * 100)
+
+    plt.close('all')
     
 
 def save_figure(filename: str):

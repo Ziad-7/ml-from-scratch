@@ -18,7 +18,7 @@ def run_experiment():
     y = np.array([[0], [0], [0], [0], [1], [1], [1], [1]])
 
     #-------------
-    # plot
+    # Plots
     #-------------
     plt.ion()
     fig, ax = plt.subplots()
